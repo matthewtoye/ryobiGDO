@@ -1,18 +1,25 @@
 // Ryobi GDO Proxy for Node.js
-// content of index.js
-// content of index.js
+
+// Change these values to suit you
+var smartThingsIP = '10.0.7.170', // Change this IP to match your smartthings hub IP
+    proxyPort = 3042;             // Change this to whatever port you want to listen on
+
+// DO NOT EDIT BELOW THIS LINE //
 const http = require('http')
 const url = require('url')
 var WebSocket = require('ws')
-const port = 3042
+const port = proxyPort
 
 const requestHandler = (request, response) => {
 const queryData = url.parse(request.url, true).query;
         response.writeHead(200, {"Content-Type": "text/plain"});
         var reqip = request.connection.remoteAddress.split(':')
-        if (reqip[3] !== '192.168.42.239') {
-        response.end('Not Authorized')
+        if (reqip[3] !== smartThingsIP) {
+ 	       response.end('Not Authorized')
         }
+
+//console.log("request ip: " + reqip[3])
+
 //console.log(request.url)
         if (queryData.name == 'lighton') {
                 var cmd = 'lightState'
@@ -65,37 +72,46 @@ const queryData = url.parse(request.url, true).query;
             const stop = new Date().getTime() + time;
          while(new Date().getTime() < stop);
         }
-        freeze(250);
+	//console.log("MESSAGE: " + JSON.stringify(message));
+        freeze(1000);
         ws.send(JSON.parse(JSON.stringify(message)));
+        //console.log("MESSAGE: " + JSON.stringify(message));
         response.end(connectmsg);
         ws.close()
         }
-        } else if (cmdtype == 1) {
+        } 
+
+	else if (cmdtype == 1) {
         var request = require('request');
         var requestmsg = '{"username":"emailhere","password":"passwordhere"}'
         var requestmsg = requestmsg.replace('emailhere', queryData.email)
         var requestmsg = requestmsg.replace('passwordhere', queryData.pass)
         var requestmsg = JSON.parse(requestmsg)
 
-const doSomething = () => new Promise((resolve, reject) => {
-var options = {url:'https://tti.tiwiconnect.com/api/devices/' + queryData.doorid + '',method:'GET',json:requestmsg}
-    function freeze(time) {
-            const stop = new Date().getTime() + time;
-         while(new Date().getTime() < stop);
-        }
-        freeze(3000);
+	const doSomething = () => new Promise((resolve, reject) => {
+		 var options = {url:'https://tti.tiwiconnect.com/api/devices/' + queryData.doorid + '',method:'GET',json:requestmsg}
+    		 function freeze(time) {
+        	   	 const stop = new Date().getTime() + time;
+           		 while(new Date().getTime() < stop);
+       	  	 }
+       		 freeze(3000);
 
-        request(options, (err, res, body) => {
-        if (err) return reject(err)
-        resolve(body)
-    })
-})
+	         request(options, (err, res, body) => {
+       			 if (err) { 
+				//console.log("ERROR: " + err)	
+				return reject(err)
+       		 	 }
+	   	 	 //console.log("Past error. Body: " + JSON.stringify(body));
+	       	 	 resolve(body)
+    		 })
+	})
 
 const someController = async function() {
     var someValue = await doSomething()
                 var lightval = someValue.result[0].deviceTypeMap.garageLight_7.at.lightState.value
                 var doorval = someValue.result[0].deviceTypeMap.garageDoor_7.at.doorState.value
                 var batval = someValue.result[0].deviceTypeMap.backupCharger_8.at.chargeLevel.value
+		//console.log("Light val: " + lightval + " doorval: " + doorval + " batval: " + batval);
                 response.end('status:' + String(lightval) + ':' + String(doorval) + ':' + String(batval))
 
 }
